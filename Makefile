@@ -1,8 +1,8 @@
 all:
 
 golang:
-	rm ns_*.go
-	rm service.go
+	rm -f ns_*.go
+	rm -f service.go
 	../../cinp/utils/cinp-codegen -l go -d . -s contractor http://127.0.0.1:8888/api/v1/
 	sed s/NewContractor/NewContractorInt/ -i service.go
 	echo -n "\n\
