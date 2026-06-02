@@ -2,8 +2,42 @@ package contractor
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 )
+
+// NamespaceVersion holds the path and API version for one namespace
+type NamespaceVersion struct {
+	Path    string
+	Version string
+}
+
+// GetVersionInfo describes the root namespace and each of its sub-namespaces,
+// returning the per-namespace API versions.
+func (s *Contractor) GetVersionInfo(ctx context.Context) ([]NamespaceVersion, error) {
+	root, t, err := s.cinp.Describe(ctx, "/api/v1/")
+	if err != nil {
+		return nil, err
+	}
+	if t != "Namespace" {
+		return nil, fmt.Errorf("expected a Namespace got '%s'", t)
+	}
+
+	namespaces := []NamespaceVersion{{Path: "/api/v1/", Version: root.APIVersion}}
+
+	for _, nsPath := range root.Namespaces {
+		r, t, err := s.cinp.Describe(ctx, nsPath)
+		if err != nil {
+			return nil, fmt.Errorf("describing '%s': %w", nsPath, err)
+		}
+		if t != "Namespace" {
+			continue
+		}
+		namespaces = append(namespaces, NamespaceVersion{Path: nsPath, Version: r.APIVersion})
+	}
+
+	return namespaces, nil
+}
 
 // NewContractor creates a new Contractor and logs it in with the username and password
 func NewContractor(ctx context.Context, log *slog.Logger, host string, proxy string, username string, password string) (*Contractor, error) {
